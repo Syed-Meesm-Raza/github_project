@@ -1,0 +1,389 @@
+{% load static %}
+{% load math_extras %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inventory | Penta Industries & Limited</title>
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="{% static 'css/inventory-dashboard.css' %}" rel="stylesheet">
+  <!-- SVG Favicon (for modern browsers) -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
+  <path d='M20,80 L20,40 Q20,30 30,30 L70,30 Q80,30 80,40 L80,80 L75,90 L25,90 Z' fill='%230891b2'/>
+  <rect x='45' y='10' width='10' height='20' fill='%230891b2'/>
+  <circle cx='35' cy='60' r='4' fill='%23ffffff'/>
+  <circle cx='65' cy='50' r='3' fill='%23ffffff'/>
+  <circle cx='50' cy='70' r='3.5' fill='%23ffffff'/>
+  <line x1='35' y1='60' x2='50' y2='70' stroke='%23ffffff' stroke-width='1.5'/>
+  <line x1='65' y1='50' x2='50' y2='70' stroke='%23ffffff' stroke-width='1.5'/>
+</svg>" type="image/svg+xml" />
+</head>
+
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-white">
+    <div class="container">
+      <!-- Professional SVG Logo -->
+      <a class="navbar-brand d-flex align-items-center text-decoration-none" href="/">
+        <svg width="36" height="36" viewBox="0 0 100 100">
+          <path d="M20,80 L20,40 Q20,30 30,30 L70,30 Q80,30 80,40 L80,80 L75,90 L25,90 Z" fill="#0891b2" />
+          <rect x="45" y="10" width="10" height="20" fill="#0891b2" />
+          <circle cx="35" cy="60" r="4" fill="#ffffff" />
+          <circle cx="65" cy="50" r="3" fill="#ffffff" />
+          <circle cx="50" cy="70" r="3.5" fill="#ffffff" />
+          <line x1="35" y1="60" x2="50" y2="70" stroke="#ffffff" stroke-width="1.5" />
+          <line x1="65" y1="50" x2="50" y2="70" stroke="#ffffff" stroke-width="1.5" />
+        </svg>
+        <span class="fw-bold">Penta Industries</span>
+      </a>
+
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="/">Home</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/client/">Clients</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/order/">Orders</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="/inventory/">Inventory</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="/finance/">Finance</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="container mt-4">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-start mb-4">
+      <div>
+        <h1 class="display-5 fw-bold">🧪 Inventory Dashboard</h1>
+        <p class="text-muted mb-0">Monitor raw materials and stock levels</p>
+      </div>
+      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMaterialModal">
+        + Add Material
+      </button>
+    </div>
+
+    <!-- Success/Error Messages -->
+    {% if messages %}
+    <div class="mb-3">
+      {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Stats Cards (Match Order Dashboard Style) -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="card stat-card border-top border-4 border-primary">
+          <div class="card-body text-center">
+            <h2 class="mb-0">{{ total_materials }}</h2>
+            <small class="text-muted">Total Materials</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card stat-card border-top border-4 border-success">
+          <div class="card-body text-center">
+            <h2 class="mb-0">{{ in_stock }}</h2>
+            <small class="text-muted">In Stock</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card stat-card border-top border-4 border-warning">
+          <div class="card-body text-center">
+            <h2 class="mb-0">{{ low_stock }}</h2>
+            <small class="text-muted">Low Stock</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card stat-card border-top border-4 border-danger">
+          <div class="card-body text-center">
+            <h2 class="mb-0">{{ out_of_stock }}</h2>
+            <small class="text-muted">Out of Stock</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Search & Filter Bar (Like Order Dashboard) -->
+<div class="card mb-4 p-3">
+  <form method="get" class="d-flex gap-3 align-items-center">
+    <input type="text" name="search" class="form-control" placeholder="Search materials..."
+           value="{{ request.GET.search }}">
+    
+    <select name="status" class="form-select" style="max-width: 200px;" onchange="this.form.submit()">
+      <option value="" {% if not request.GET.status %}selected{% endif %}>All Status</option>
+      <option value="in_stock" {% if request.GET.status == 'in_stock' %}selected{% endif %}>In Stock</option>
+      <option value="low_stock" {% if request.GET.status == 'low_stock' %}selected{% endif %}>Low Stock</option>
+      <option value="out_of_stock" {% if request.GET.status == 'out_of_stock' %}selected{% endif %}>Out of Stock</option>
+    </select>
+    
+    <!-- <button type="submit" class="btn btn-outline-secondary">Apply</button> -->
+    <a href="{% url 'inventory_dashboard' %}" class="btn btn-outline-secondary">Clear</a>
+  </form>
+</div>
+
+    <!-- Inventory Table Header (Like Order Dashboard) -->
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Materials</h5>
+      </div>
+    </div>
+
+    <!-- Inventory Cards Grid -->
+    <div class="row g-3">
+      {% for material in materials %}
+      <div class="col-md-4">
+        <div class="card inventory-card {{ material.status }}">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <h6 class="material-name">
+                {{ material.name }}
+                {% if material.quantity < material.threshold %}
+                <span class="contact-vendor">
+                  <!-- <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 9l-9-9-9-9 9-9 9 9m0 18v-6a3 3 0 00-3-3 0H6a3 3 0 00-3 3v6" />
+                  </svg> -->
+                  ⚠️ Contact Vendor
+                </span>
+                {% endif %}
+              </h6>
+              <div class="dropdown">
+                  <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <circle cx="12" cy="12" r="1"/>
+      <circle cx="12" cy="5" r="1"/>
+      <circle cx="12" cy="19" r="1"/>
+    </svg>
+  </button>
+                <ul class="dropdown-menu">
+                  <li>
+                    <button class="dropdown-item edit-material-btn"
+                      data-id="{{ material.id }}"
+                      data-name="{{ material.name }}"
+                      data-quantity="{{ material.quantity }}"
+                      data-unit="{{ material.unit }}"
+                      data-threshold="{{ material.threshold }}"
+                      data-max="{{ material.max_quantity }}"
+                      data-bs-toggle="modal"
+                      data-bs-target="#editMaterialModal">
+                      Edit
+                    </button>
+                  </li>
+                  <li>
+                    <button class="dropdown-item delete-material-btn"
+                      data-id="{{ material.id }}"
+                      data-name="{{ material.name }}"
+                      data-bs-toggle="modal"
+                      data-bs-target="#deleteMaterialModal">
+                      Delete
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Quantity Bar -->
+            <div class="quantity-bar-container">
+              <div class="quantity-bar {{ material.bar_class }}"
+                style="width: {{ material.bar_width }}%;">
+              </div>
+            </div>
+
+            <!-- Quantity Info -->
+            <div class="quantity-info mt-3">
+              <span class="quantity-value">{{ material.quantity }}</span>
+              <span class="quantity-threshold">
+                / {{ material.max_quantity }} {{ material.unit }}
+                {% if material.show_warning %}
+                <span class="badge-warning">⚠️ Below threshold</span>
+                {% endif %}
+              </span>
+            </div>
+
+            <!-- Last Updated -->
+            <div class="mt-2">
+              <small class="text-muted">
+                <strong>Last Updated:</strong> {{ material.last_updated|date:"M d, Y" }}
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="col-12 text-center py-5">
+        <div class="card p-5">
+          <h4 class="text-muted">No materials in inventory</h4>
+          <button type="button" class="btn btn-primary mt-3" data-bs-toggle="modal" data-bs-target="#addMaterialModal">
+            Add First Material
+          </button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- ADD MATERIAL MODAL -->
+  <div class="modal fade" id="addMaterialModal" tabindex="-1" aria-labelledby="addMaterialModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addMaterialModalLabel">Add New Material</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="addMaterialForm" method="post">
+          {% csrf_token %}
+          <div class="modal-body">
+            <div class="mb-3">
+              <label class="form-label">Material Name</label>
+              <input type="text" class="form-control" name="name" required>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Quantity</label>
+                <input type="number" class="form-control" name="quantity" step="0.01" required>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Unit</label>
+                <select class="form-select" name="unit" required>
+                  <option value="kg">Kilograms (kg)</option>
+                  <option value="liters">Liters</option>
+                  <option value="tons">Tons</option>
+                  <option value="pieces">Pieces</option>
+                  <option value="barrels">Barrels</option>
+                  <option value="drums">Drums</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Max Quantity</label>
+                <input type="number" class="form-control" name="max_quantity" step="0.01" required>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Threshold Quantity</label>
+                <input type="number" class="form-control" name="threshold" step="0.01" required>
+                <small class="text-muted">Low stock alert level</small>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Add Material</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+<!-- EDIT MATERIAL MODAL -->
+<div class="modal fade" id="editMaterialModal" tabindex="-1" aria-labelledby="editMaterialModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editMaterialModalLabel">Edit Material</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="editMaterialForm" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="material_id" id="edit-material-id">
+        <input type="hidden" name="edit_material" value="1">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Material Name</label>
+            <input type="text" class="form-control" id="edit-name" name="name" required>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Quantity</label>
+              <input type="number" class="form-control" id="edit-quantity" name="quantity" step="0.01" required>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Unit</label>
+              <select class="form-select" id="edit-unit" name="unit" required>
+                <option value="kg">Kilograms (kg)</option>
+                <option value="liters">Liters</option>
+                <option value="tons">Tons</option>
+                <option value="pieces">Pieces</option>
+                <option value="barrels">Barrels</option>
+                <option value="drums">Drums</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Max Quantity</label>
+              <input type="number" class="form-control" id="edit-max_quantity" name="max_quantity" step="0.01" required>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Threshold Quantity</label>
+              <input type="number" class="form-control" id="edit-threshold" name="threshold" step="0.01" required>
+              <small class="text-muted">Low stock alert level</small>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Update Material</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+  <!-- DELETE MATERIAL MODAL -->
+  <div class="modal fade" id="deleteMaterialModal" tabindex="-1" aria-labelledby="deleteMaterialModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="deleteMaterialModalLabel">Confirm Deletion</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          Are you sure you want to delete <strong id="delete-material-name">this material</strong>?<br>
+          This action cannot be undone.
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <form id="deleteMaterialForm" method="post" style="display:inline;">
+            {% csrf_token %}
+            <input type="hidden" name="material_id" id="delete-material-id">
+            <input type="hidden" name="delete_material" value="1">
+            <button type="submit" class="btn btn-danger">Delete Material</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Inventory Dashboard JavaScript -->
+   <script src="{% static 'js/inventory-dashboard.js' %}"></script>
+</body>
+
+</html>
